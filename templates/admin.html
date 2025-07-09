@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel</title>
+</head>
+<body>
+  <h2>Admin Panel</h2>
+  {% if edit_requests %}
+  <h3>Pending Edit Requests</h3>
+  <ul>
+    {% for eid in edit_requests %}
+      <li>
+        Entry ID: {{ eid }}
+        <form method="POST" action="/approve_edit/{{ eid }}">
+          <input type="password" name="adminpass" placeholder="Enter admin password" required>
+          <button type="submit">Approve</button>
+        </form>
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+
+  <h3>Uploaded Staff</h3>
+  <ul>
+    {% for s in staff %}
+      <li>
+        <strong>{{ s.name }}</strong> - {{ s.role }}<br>
+
+        {% if s.file.endswith(('png','jpg','jpeg','gif')) %}
+          <img src="{{ url_for('uploaded_file', filename=s.file) }}" width="100"><br>
+        {% else %}
+          <a href="{{ url_for('uploaded_file', filename=s.file) }}" target="_blank">View File</a><br>
+        {% endif %}
+
+        <form method="POST" action="/delete/{{ s.id }}">
+          <button type="submit">Delete</button>
+        </form>
+
+        <hr>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <br><a href="/upload">Back to Upload Page</a>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Edit Staff</title>
+</head>
+<body>
+  <h2>Edit Staff Entry</h2>
+
+  <form method="POST" enctype="multipart/form-data">
+    <label>Name:</label><br>
+    <input name="name" value="{{ staff.name }}" required><br><br>
+
+    <label>Role:</label><br>
+    <input name="role" value="{{ staff.role }}" required><br><br>
+
+    <label>Replace File (optional):</label><br>
+    <input type="file" name="file"><br><br>
+
+    <button type="submit">Save</button>
+  </form>
+</body>
+</html>

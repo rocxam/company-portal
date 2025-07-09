@@ -1,0 +1,35 @@
+<form method="post" enctype="multipart/form-data">
+  <label for="name">Staff Name:</label><br>
+  <input name="name" id="name" required><br><br>
+
+  <label for="role">Role/Position:</label><br>
+  <input name="role" id="role" required><br><br>
+
+  <label for="file">Upload File (image, PDF, video):</label><br>
+  <input type="file" name="file" id="file" required><br><br>
+
+  <button type="submit">Upload</button>
+</form>
+<h3>Uploaded Staff</h3>
+<ul>
+  {% for s in staff %}
+    <li>
+      <strong>{{ s.name }}</strong> - {{ s.role }}<br>
+          {% if s.uploaded_by == session['user'] %}
+      <form method="POST" action="/request_edit/{{ s.id }}">
+        <button type="submit">Request Edit</button>
+      </form>
+    {% endif %}
+
+
+      {% if s.file.endswith(('png','jpg','jpeg','gif')) %}
+        <img src="{{ url_for('uploaded_file', filename=s.file) }}" width="100"><br>
+      {% elif s.file.endswith(('pdf','mp4','avi')) %}
+        <a href="{{ url_for('uploaded_file', filename=s.file) }}" target="_blank">View File</a><br>
+      {% endif %}
+
+      <hr>
+    </li>
+  {% endfor %}
+</ul>
+
