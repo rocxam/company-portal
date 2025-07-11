@@ -1,11 +1,11 @@
 from flask import Flask, render_template, request, redirect, session, send_from_directory
 import os
 from werkzeug.utils import secure_filename
+from datetime import timedelta
 
 app = Flask(__name__)
-from datetime import timedelta
-app.permanent_session_lifetime = timedelta(minutes=30)
 app.secret_key = 'your_secret_key_here'
+app.permanent_session_lifetime = timedelta(minutes=30)
 
 # Define allowed users and passwords
 USERS = {
@@ -22,24 +22,21 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 staff_data = []
 edit_requests = []
 
-
 # Helper function to check file types
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-#flask
-app = Flask(__name__)
-#  landing (home) route
+
+# Landing route → redirects to login
 @app.route('/')
 def home():
     return redirect('/login')
 
-
-# Home route: login page
-@app.route('/')
-def home():
+# Login page
+@app.route('/login')
+def show_login():
     return render_template('login.html')
 
-# Login route
+# Login POST handler
 @app.route('/login', methods=['POST'])
 def login():
     email = request.form['email']
@@ -72,26 +69,24 @@ def upload():
                 'file': filename,
                 'uploaded_by': session['user']
             })
-
         else:
             return "Invalid file type"
 
     return render_template('upload.html', staff=staff_data)
 
-#request_edit/<int:staff_id>
+# Request to edit
 @app.route('/request_edit/<int:staff_id>', methods=['POST'])
 def request_edit(staff_id):
     if 'user' not in session:
         return redirect('/')
 
-    # Only allow requesting edit for your own uploads
     staff = next((s for s in staff_data if s['id'] == staff_id), None)
     if staff and staff['uploaded_by'] == session['user']:
         if staff_id not in edit_requests:
             edit_requests.append(staff_id)
     return redirect('/upload')
 
-#approve_edit/<int:staff_id>
+# Approve edit (admin only)
 @app.route('/approve_edit/<int:staff_id>', methods=['POST'])
 def approve_edit(staff_id):
     admin_pass = request.form['adminpass']
@@ -99,10 +94,7 @@ def approve_edit(staff_id):
         return redirect(f'/edit/{staff_id}')
     return "Access denied."
 
-
-
-
-# Admin panel login page + password check
+# Admin panel
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     if request.method == 'POST':
@@ -112,6 +104,8 @@ def admin():
         else:
             return "Access denied."
     return render_template('admin_login.html')
+
+# Delete staff (admin only)
 @app.route('/delete/<int:staff_id>', methods=['POST'])
 def delete_staff(staff_id):
     if session.get('user') != 'rocxam@portal.com':
@@ -121,31 +115,13 @@ def delete_staff(staff_id):
     staff_data = [s for s in staff_data if s['id'] != staff_id]
     return redirect('/admin')
 
-
-# File serving route
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
-# Logout route
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect('/')
-
-
-    # Prevent duplicate requests
-    if staff_id not in edit_requests:
-        edit_requests.append(staff_id)
-    return redirect('/upload')
-#edit/<int:staff_id>
+# Edit staff
 @app.route('/edit/<int:staff_id>', methods=['GET', 'POST'])
 def edit_staff(staff_id):
     staff = next((s for s in staff_data if s['id'] == staff_id), None)
     if not staff:
         return "Staff not found."
 
-    # Only allow uploader to edit if approved
     if staff_id not in edit_requests or session.get('user') != staff['uploaded_by']:
         return "Not authorized."
 
@@ -160,11 +136,21 @@ def edit_staff(staff_id):
             file.save(filepath)
             staff['file'] = filename
 
-        # Remove request after editing
         edit_requests.remove(staff_id)
         return redirect('/upload')
 
     return render_template('edit.html', staff=staff)
+
+# Serve uploaded files
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+# Logout
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/')
 
 # Run the app
 if __name__ == '__main__':
