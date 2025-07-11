@@ -1,15 +1,16 @@
-{% extends 'base.html' %}
-{% block content %}
-<div class="container mt-4">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Login</title>
+</head>
+<body>
   <h2>Admin Verification</h2>
+  <form method="post" action="/{{ redirect_to }}">
+    <label for="adminpass">Admin Password:</label><br>
+    <input name="adminpass" type="password" required><br><br>
 
-  <form method="post" class="mt-3">
-    <div class="mb-3">
-      <label for="adminpass" class="form-label">Admin Password</label>
-      <input name="adminpass" id="adminpass" type="password" placeholder="Admin Password" class="form-control" required>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Enter Admin Panel</button>
+    <button type="submit">Enter Admin Panel</button>
   </form>
-</div>
-{% endblock %}
+</body>
+</html>
