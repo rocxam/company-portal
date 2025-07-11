@@ -26,6 +26,13 @@ edit_requests = []
 # Helper function to check file types
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+#flask
+app = Flask(__name__)
+#  landing (home) route
+@app.route('/')
+def home():
+    return redirect('/login')
+
 
 # Home route: login page
 @app.route('/')
@@ -158,7 +165,6 @@ def edit_staff(staff_id):
         return redirect('/upload')
 
     return render_template('edit.html', staff=staff)
-
 
 # Run the app
 if __name__ == '__main__':
