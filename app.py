@@ -1,146 +1,105 @@
-from flask import Flask, render_template, request, redirect, session, send_from_directory
-import os
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, session, flash
 from werkzeug.utils import secure_filename
-from datetime import timedelta
+import os
+import uuid
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'
-app.permanent_session_lifetime = timedelta(minutes=30)
-
-# Define allowed users and passwords
-USERS = {
-    "obireka@portal.com": {"password": "staff123", "role": "staff"},
-    "rocxam@portal.com": {"password": "adminpass123", "role": "admin"}
-}
+app.secret_key = 'super-secret-key'
 
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'mp4', 'avi'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+ADMIN_PASSWORD = 'adminpass123'
 
+# Data storage
 staff_data = []
 edit_requests = []
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 @app.route('/')
-def home():
+def index():
     return redirect('/login')
 
-@app.route('/login')
-def show_login():
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        session['user'] = request.form['email']
+        return redirect('/upload')
     return render_template('login.html')
 
-@app.route('/login', methods=['POST'])
-def login():
-    email = request.form['email']
-    password = request.form['password']
-    user = USERS.get(email)
-    if user and user['password'] == password:
-        session['user'] = email
-        session['role'] = user['role']
-        return redirect('/upload')
-    else:
-        return "Invalid email or password."
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/login')
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     if 'user' not in session:
-        return redirect('/')
-
+        return redirect('/login')
     if request.method == 'POST':
         name = request.form['name']
         role = request.form['role']
         file = request.files['file']
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-            staff_data.append({
-                'id': len(staff_data),
-                'name': name,
-                'role': role,
-                'file': filename,
-                'uploaded_by': session['user']
-            })
+        if file:
+            filename = secure_filename(f"{uuid.uuid4()}_{file.filename}")
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         else:
-            return "Invalid file type"
-
-    return render_template('upload.html', staff=staff_data, edit_requests=edit_requests)
-
-@app.route('/request_edit/<int:staff_id>', methods=['POST'])
-def request_edit(staff_id):
-    if 'user' not in session:
-        return redirect('/')
-    staff = next((s for s in staff_data if s['id'] == staff_id), None)
-    if staff and staff['uploaded_by'] == session['user']:
-        if staff_id not in edit_requests:
-            edit_requests.append(staff_id)
-    return redirect('/admin_login?redirect=admin')
-
-@app.route('/admin_login')
-def admin_login_redirect():
-    return render_template('admin_login.html', redirect_to=request.args.get('redirect'))
-
-@app.route('/approve_edit/<int:staff_id>', methods=['POST'])
-def approve_edit(staff_id):
-    admin_pass = request.form['adminpass']
-    if session.get('user') == "rocxam@portal.com" and admin_pass == "adminpass123":
-        return redirect(f'/edit/{staff_id}')
-    return "Access denied."
-
-@app.route('/admin', methods=['GET', 'POST'])
-def admin():
-    if request.method == 'POST':
-        admin_pass = request.form['adminpass']
-        if session.get('user') == "rocxam@portal.com" and admin_pass == "adminpass123":
-            return render_template('admin.html', staff=staff_data, edit_requests=edit_requests)
-        else:
-            return "Access denied."
-    return render_template('admin_login.html', redirect_to='admin')
-
-@app.route('/delete/<int:staff_id>', methods=['POST'])
-def delete_staff(staff_id):
-    if session.get('user') != 'rocxam@portal.com':
-        return "Only admin can delete."
-    global staff_data
-    staff_data = [s for s in staff_data if s['id'] != staff_id]
-    return redirect('/admin')
-
-@app.route('/edit/<int:staff_id>', methods=['GET', 'POST'])
-def edit_staff(staff_id):
-    staff = next((s for s in staff_data if s['id'] == staff_id), None)
-    if not staff:
-        return "Staff not found."
-
-    if session.get('user') != staff['uploaded_by'] and session.get('user') != "rocxam@portal.com":
-        return "Not authorized."
-
-    if request.method == 'POST':
-        staff['name'] = request.form['name']
-        staff['role'] = request.form['role']
-        file = request.files['file']
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-            staff['file'] = filename
-        if staff_id in edit_requests:
-            edit_requests.remove(staff_id)
+            filename = ""
+        staff_data.append({'id': str(uuid.uuid4()), 'name': name, 'role': role, 'file': filename, 'uploaded_by': session['user']})
         return redirect('/upload')
-
-    return render_template('edit.html', staff=staff)
+    return render_template('upload.html', staff=staff_data, user=session['user'], edit_requests=edit_requests)
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect('/')
+@app.route('/request_edit/<staff_id>', methods=['POST'])
+def request_edit(staff_id):
+    if staff_id not in edit_requests:
+        edit_requests.append(staff_id)
+    return redirect('/upload')
 
-if __name__ == '__main__':
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
-    app.run(debug=True)
+@app.route('/admin', methods=['GET', 'POST'])
+def admin():
+    if request.method == 'POST':
+        if request.form['adminpass'] == ADMIN_PASSWORD:
+            session['admin_verified'] = True
+            return redirect('/admin')
+        else:
+            flash('Access Denied: Incorrect Password')
+            return redirect('/admin')
+    if session.get('admin_verified'):
+        return render_template('admin.html', staff=staff_data, edit_requests=edit_requests)
+    return render_template('admin_login.html')
+
+@app.route('/approve_edit/<staff_id>', methods=['POST'])
+def approve_edit(staff_id):
+    if request.form['adminpass'] == ADMIN_PASSWORD:
+        return redirect(f'/edit/{staff_id}')
+    flash("Access Denied")
+    return redirect('/admin')
+
+@app.route('/edit/<staff_id>', methods=['GET', 'POST'])
+def edit(staff_id):
+    staff = next((s for s in staff_data if s['id'] == staff_id), None)
+    if not staff:
+        return "Staff not found"
+    if request.method == 'POST':
+        staff['name'] = request.form['name']
+        staff['role'] = request.form['role']
+        file = request.files['file']
+        if file and file.filename:
+            filename = secure_filename(f"{uuid.uuid4()}_{file.filename}")
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            staff['file'] = filename
+        if staff_id in edit_requests:
+            edit_requests.remove(staff_id)
+        return redirect('/admin')
+    return render_template('edit.html', staff=staff)
+
+@app.route('/delete/<staff_id>', methods=['POST'])
+def delete(staff_id):
+    global staff_data
+    staff_data = [s for s in staff_data if s['id'] != staff_id]
+    return redirect('/admin')

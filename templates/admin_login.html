@@ -1,16 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Admin Login</title>
-</head>
-<body>
-  <h2>Admin Verification</h2>
-  <form method="post" action="/{{ redirect_to }}">
-    <label for="adminpass">Admin Password:</label><br>
-    <input name="adminpass" type="password" required><br><br>
-
-    <button type="submit">Enter Admin Panel</button>
-  </form>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Admin Login{% endblock %}
+{% block content %}
+<h2>Admin Verification</h2>
+<form method="post">
+  <div class="mb-3">
+    <label>Admin Password</label>
+    <input name="adminpass" type="password" class="form-control" required>
+  </div>
+  <button class="btn btn-primary">Enter Admin Panel</button>
+</form>
+{% endblock %}

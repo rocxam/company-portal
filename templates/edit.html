@@ -1,22 +1,20 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Edit Staff</title>
-</head>
-<body>
-  <h2>Edit Staff Entry</h2>
-
-  <form method="POST" enctype="multipart/form-data">
-    <label>Name:</label><br>
-    <input name="name" value="{{ staff.name }}" required><br><br>
-
-    <label>Role:</label><br>
-    <input name="role" value="{{ staff.role }}" required><br><br>
-
-    <label>Replace File (optional):</label><br>
-    <input type="file" name="file"><br><br>
-
-    <button type="submit">Save</button>
-  </form>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Edit Staff{% endblock %}
+{% block content %}
+<h2>Edit Staff Entry</h2>
+<form method="POST" enctype="multipart/form-data">
+  <div class="mb-3">
+    <label>Name</label>
+    <input name="name" value="{{ staff.name }}" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label>Role</label>
+    <input name="role" value="{{ staff.role }}" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label>Replace File (optional)</label>
+    <input type="file" name="file" class="form-control">
+  </div>
+  <button class="btn btn-primary">Save</button>
+</form>
+{% endblock %}
