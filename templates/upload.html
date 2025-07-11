@@ -1,35 +1,51 @@
-<form method="post" enctype="multipart/form-data">
-  <label for="name">Staff Name:</label><br>
-  <input name="name" id="name" required><br><br>
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">Upload Staff</h2>
 
-  <label for="role">Role/Position:</label><br>
-  <input name="role" id="role" required><br><br>
+  <form method="post" enctype="multipart/form-data" class="mb-4">
+    <div class="mb-3">
+      <label for="name" class="form-label">Staff Name</label>
+      <input name="name" id="name" class="form-control" required>
+    </div>
 
-  <label for="file">Upload File (image, PDF, video):</label><br>
-  <input type="file" name="file" id="file" required><br><br>
+    <div class="mb-3">
+      <label for="role" class="form-label">Role/Position</label>
+      <input name="role" id="role" class="form-control" required>
+    </div>
 
-  <button type="submit">Upload</button>
-</form>
-<h3>Uploaded Staff</h3>
-<ul>
-  {% for s in staff %}
-    <li>
-      <strong>{{ s.name }}</strong> - {{ s.role }}<br>
-          {% if s.uploaded_by == session['user'] %}
-      <form method="POST" action="/request_edit/{{ s.id }}">
-        <button type="submit">Request Edit</button>
-      </form>
-    {% endif %}
+    <div class="mb-3">
+      <label for="file" class="form-label">Upload File (image, PDF, video)</label>
+      <input type="file" name="file" id="file" class="form-control" required>
+    </div>
 
+    <button type="submit" class="btn btn-primary">Upload</button>
+  </form>
 
-      {% if s.file.endswith(('png','jpg','jpeg','gif')) %}
-        <img src="{{ url_for('uploaded_file', filename=s.file) }}" width="100"><br>
-      {% elif s.file.endswith(('pdf','mp4','avi')) %}
-        <a href="{{ url_for('uploaded_file', filename=s.file) }}" target="_blank">View File</a><br>
-      {% endif %}
+  <h3>Uploaded Staff</h3>
+  <div class="row">
+    {% for s in staff %}
+      <div class="col-md-6 mb-4">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">{{ s.name }}</h5>
+            <p class="card-text"><strong>Role:</strong> {{ s.role }}</p>
 
-      <hr>
-    </li>
-  {% endfor %}
-</ul>
+            {% if s.uploaded_by == session['user'] %}
+              <form method="POST" action="/request_edit/{{ s.id }}" class="mb-2">
+                <button type="submit" class="btn btn-warning btn-sm">Request Edit</button>
+              </form>
+            {% endif %}
 
+            {% if s.file.endswith(('png','jpg','jpeg','gif')) %}
+              <img src="{{ url_for('uploaded_file', filename=s.file) }}" class="img-fluid mb-2" alt="Uploaded Image">
+            {% elif s.file.endswith(('pdf','mp4','avi')) %}
+              <a href="{{ url_for('uploaded_file', filename=s.file) }}" target="_blank" class="btn btn-outline-secondary btn-sm">View File</a><br>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
