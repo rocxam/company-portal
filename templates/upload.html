@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Upload Staff{% endblock %}
 {% block content %}
+
 <h2>Upload Staff</h2>
 <form method="post" enctype="multipart/form-data">
   <div class="mb-3">
@@ -21,24 +22,25 @@
 <h3 class="mt-4">Uploaded Staff</h3>
 <div class="row">
   {% for s in staff %}
+  {% set ext = s.file.split('.')[-1].lower() %}
   <div class="col-md-4">
     <div class="card mb-3">
-      {% if s.file_type in ['png', 'jpg', 'jpeg', 'gif'] %}
+      {% if ext in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'] %}
         <img src="{{ s.file }}" class="card-img-top" height="200" style="object-fit: cover;">
-      {% elif s.file_type == 'pdf' %}
-        <iframe src="{{ s.file }}" height="200" class="w-100"></iframe>
-      {% elif s.file_type in ['mp4', 'webm'] %}
+      {% elif ext == 'pdf' %}
+        <iframe src="{{ s.file }}" class="w-100" height="200" style="border: none;"></iframe>
+      {% elif ext in ['mp4', 'webm', 'ogg'] %}
         <video class="w-100" height="200" controls>
-          <source src="{{ s.file }}" type="video/{{ s.file_type }}">
+          <source src="{{ s.file }}" type="video/{{ ext }}">
+          Your browser does not support the video tag.
         </video>
       {% else %}
-        <a href="{{ s.file }}" target="_blank" class="btn btn-sm btn-secondary">View File</a>
+        <a href="{{ s.file }}" target="_blank" class="btn btn-sm btn-secondary mt-2">Download File</a>
       {% endif %}
 
       <div class="card-body">
         <h5 class="card-title">{{ s.name }}</h5>
         <p class="card-text"><strong>Role:</strong> {{ s.role }}</p>
-        <p class="card-text"><strong>File Type:</strong> {{ s.file_type }}</p>
         <p class="card-text"><strong>File Name:</strong> {{ s.file.split('/')[-1] }}</p>
         <a href="{{ s.file }}" class="btn btn-sm btn-secondary" target="_blank">Open</a>
         {% if s.uploaded_by == user %}

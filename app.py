@@ -8,12 +8,11 @@ import cloudinary.api
 
 # Configure Cloudinary
 cloudinary.config(
-  cloud_name='dmcbgugli',
-  api_key='961589438572493',
-  api_secret='g0qQo31SP3vGgwtY8M3enNdiNV8',
-  secure=True
+    cloud_name='dmcbgugli',
+    api_key='961589438572493',
+    api_secret='g0qQo31SP3vGgwtY8M3enNdiNV8',
+    secure=True
 )
-
 
 app = Flask(__name__)
 app.secret_key = 'super-secret-key'
@@ -22,12 +21,13 @@ UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 ADMIN_PASSWORD = 'adminpass123'
 
-# Data storage
-staff_data = []
-edit_requests = []
-
+# Ensure uploads folder exists
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+
+# In-memory data storage
+staff_data = []
+edit_requests = []
 
 @app.route('/')
 def index():
@@ -49,22 +49,43 @@ def logout():
 def upload():
     if 'user' not in session:
         return redirect('/login')
+
     if request.method == 'POST':
         name = request.form['name']
         role = request.form['role']
         file = request.files['file']
-        if file:
+        file_url = ""
+        filename = ""
+
+        if file and file.filename:
             filename = secure_filename(f"{uuid.uuid4()}_{file.filename}")
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        else:
-            filename = ""
-        staff_data.append({'id': str(uuid.uuid4()), 'name': name, 'role': role, 'file': filename, 'uploaded_by': session['user']})
+            try:
+                upload_result = cloudinary.uploader.upload(file, resource_type="auto")
+                file_url = upload_result['secure_url']
+            except Exception as e:
+                flash(f"Cloud upload failed: {str(e)}. File saved locally.")
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                file_url = url_for('uploaded_file', filename=filename)
+
+        staff_data.append({
+            'id': str(uuid.uuid4()),
+            'name': name,
+            'role': role,
+            'file_url': file_url,
+            'file_name': filename,
+            'uploaded_by': session['user']
+        })
+
         return redirect('/upload')
+
     return render_template('upload.html', staff=staff_data, user=session['user'], edit_requests=edit_requests)
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    try:
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    except FileNotFoundError:
+        return "File not found", 404
 
 @app.route('/request_edit/<staff_id>', methods=['POST'])
 def request_edit(staff_id):
@@ -81,6 +102,7 @@ def admin():
         else:
             flash('Access Denied: Incorrect Password')
             return redirect('/admin')
+
     if session.get('admin_verified'):
         return render_template('admin.html', staff=staff_data, edit_requests=edit_requests)
     return render_template('admin_login.html')
@@ -97,17 +119,29 @@ def edit(staff_id):
     staff = next((s for s in staff_data if s['id'] == staff_id), None)
     if not staff:
         return "Staff not found"
+
     if request.method == 'POST':
         staff['name'] = request.form['name']
         staff['role'] = request.form['role']
         file = request.files['file']
+
         if file and file.filename:
             filename = secure_filename(f"{uuid.uuid4()}_{file.filename}")
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            staff['file'] = filename
+            try:
+                upload_result = cloudinary.uploader.upload(file, resource_type="auto")
+                staff['file_url'] = upload_result['secure_url']
+                staff['file_name'] = filename
+            except Exception as e:
+                flash(f"Upload to Cloudinary failed: {str(e)}. Saving locally.")
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                staff['file_url'] = url_for('uploaded_file', filename=filename)
+                staff['file_name'] = filename
+
         if staff_id in edit_requests:
             edit_requests.remove(staff_id)
+
         return redirect('/admin')
+
     return render_template('edit.html', staff=staff)
 
 @app.route('/delete/<staff_id>', methods=['POST'])
