@@ -2,6 +2,18 @@ from flask import Flask, render_template, request, redirect, url_for, send_from_
 from werkzeug.utils import secure_filename
 import os
 import uuid
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+# Configure Cloudinary
+cloudinary.config(
+  cloud_name='dmcbgugli',
+  api_key='961589438572493',
+  api_secret='g0qQo31SP3vGgwtY8M3enNdiNV8',
+  secure=True
+)
+
 
 app = Flask(__name__)
 app.secret_key = 'super-secret-key'
